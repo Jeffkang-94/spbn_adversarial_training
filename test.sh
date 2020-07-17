@@ -1,0 +1,2 @@
+CUDA_VISIBLE_DEVICES=1 python main.py --cfg_path configs/eval.json --restore ./results/train/adv_training/best.pth
+#CUDA_VISIBLE_DEVICES=1 python main.py --cfg_path configs/eval.json --restore ./results/train/clean/best.pth
