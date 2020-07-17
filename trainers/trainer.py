@@ -3,14 +3,14 @@ import torchvision.transforms as T
 import torchvision.datasets as datasets
 import models
 import torch.optim as optim
-import os.path as osp
+import os
 import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
 import time
 import utils
 from attacks import PGDAttacker
 from tqdm import tqdm
-
+from torch.utils.tensorboard import SummaryWriter 
 class Trainer:
     def __init__(self, args):
 
@@ -41,7 +41,6 @@ class Trainer:
         # Create model, optimizer and scheduler
         self.model = models.WRN(depth=32, width=10, num_classes=10)
         if args.spbn:
-            print("SP")
             self.model = models.convert_splitbn_model(self.model).cuda()
         else:
             self.model.cuda()
@@ -57,20 +56,27 @@ class Trainer:
 
         self.save_path = args.save_path
         self.epoch = 0
-
-        # resume from checkpoint
-        ckpt_path = osp.join(args.save_path, 'checkpoint.pth')
-        if osp.exists(ckpt_path):
-            self._load_from_checkpoint(ckpt_path)
-        elif args.restore:
-            self._load_from_checkpoint(args.restore)
-
         cudnn.benchmark = True
         self.attacker = PGDAttacker(args.attack_eps)
+        
+
+        # resume from checkpoint
+        if args.resume:
+            ckpt_path = os.path.join(args.save_path, 'checkpoint.pth')
+            if os.path.exists(ckpt_path):
+                self._load_from_checkpoint(ckpt_path)
+            elif args.restore:
+                self._load_from_checkpoint(args.restore)
+
+        # summary writer
+        log_dir = self.save_path +'/training_log'
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        self.writer = SummaryWriter(log_dir)
 
     def _log(self, message):
         print(message)
-        f = open(osp.join(self.save_path, 'log.txt'), 'a+')
+        f = open(os.path.join(self.save_path, 'log.txt'), 'a+')
         f.write(message + '\n')
         f.close()
 
@@ -91,14 +97,14 @@ class Trainer:
         model_data['lr_scheduler'] = self.lr_scheduler.state_dict()
         model_data['epoch'] = self.epoch
         if best:
-            torch.save(model_data, osp.join(self.save_path, 'best.pth'))
+            torch.save(model_data, os.path.join(self.save_path, 'best.pth'))
         else:
-            torch.save(model_data, osp.join(self.save_path, 'checkpoint.pth'))
+            torch.save(model_data, os.path.join(self.save_path, 'checkpoint.pth'))
 
     def train(self):
 
         losses = utils.AverageMeter()
-        self._load_from_checkpoint(osp.join(self.save_path, 'checkpoint.pth'))
+        
         best_acc = 0 
         while self.epoch < self.args.nepochs:
             self.model.train()

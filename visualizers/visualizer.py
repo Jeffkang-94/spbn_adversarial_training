@@ -18,7 +18,7 @@ class Visualizer:
         transformer = T.Compose([
             T.ToTensor()
         ])
-        kwargs = {'num_workers': 4, 'pin_memory': True}
+        kwargs = {'num_workers': 16, 'pin_memory': True}
 
         train_set = datasets.CIFAR10(args.data_root, train=True, transform=transformer, download=True)
         self.train_loader = torch.utils.data.DataLoader(
@@ -39,6 +39,7 @@ class Visualizer:
         assert self.args.restore is not None
 
         model_data = torch.load(self.args.restore)
+        print(self.args.restore)
         self.model.load_state_dict(model_data['model'])
         self.model.eval()
 

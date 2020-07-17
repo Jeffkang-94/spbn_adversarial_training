@@ -1,2 +1,4 @@
 *.jpg
 results/*
+.vscode/*
+*.txt

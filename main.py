@@ -25,6 +25,7 @@ def parse_args():
     parser.add_argument('--restore', default=None,
                         help='path to restore')
     parser.add_argument('--spbn', action='store_true', help='training model as spbn model')
+    parser.add_argument('--resume', action='store_true', help='resume the training with recent checkpoint')
     args = parser.parse_args()
     return args
 
