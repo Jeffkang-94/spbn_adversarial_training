@@ -5,11 +5,13 @@
   "alg": "clean",
 
   "lr": 0.1,
-  "batch_size": 256,
+  "batch_size": 128,
   "weight_decay": 0.0005,
   "nepochs": 200,
   "restore": false,
   "save_path": "results",
+  "spbn": false,
+  "resume": false,
 
   "attack_steps": 7,
   "attack_eps": 8.0,

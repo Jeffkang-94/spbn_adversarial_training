@@ -41,9 +41,13 @@ class Trainer:
         # Create model, optimizer and scheduler
         self.model = models.WRN(depth=32, width=10, num_classes=10)
         if args.spbn:
+            print("SPBN training!")
             self.model = models.convert_splitbn_model(self.model).cuda()
         else:
             self.model.cuda()
+
+        self.lambda_clean = 0.5
+        self.lambda_adv = 0.5
             
 
         self.optimizer = optim.SGD(self.model.parameters(), args.lr,
@@ -68,11 +72,7 @@ class Trainer:
             elif args.restore:
                 self._load_from_checkpoint(args.restore)
 
-        # summary writer
-        log_dir = self.save_path +'/training_log'
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        self.writer = SummaryWriter(log_dir)
+        
 
     def _log(self, message):
         print(message)
@@ -104,7 +104,11 @@ class Trainer:
     def train(self):
 
         losses = utils.AverageMeter()
-        
+        # summary writer
+        log_dir = self.save_path +'/training_log'
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        self.writer = SummaryWriter(log_dir)
         best_acc = 0 
         while self.epoch < self.args.nepochs:
             self.model.train()
@@ -117,31 +121,41 @@ class Trainer:
                 target = target.cuda(non_blocking=True)
                 input = input.cuda(non_blocking=True)
 
-                if self.args.alg == 'adv_training':
-                    input = self.attacker.attack(input, target, self.model, self.args.attack_steps, self.args.attack_lr,
-                                                 random_init=True, target=None)
+                adv_input = self.attacker.attack(input, target, self.model, self.args.attack_steps, self.args.attack_lr,random_init=True, target=None)
 
                 # compute output
                 self.optimizer.zero_grad()
-                logits = self.model(input)
-                loss = F.cross_entropy(logits, target)
+
+                concat = torch.cat((input ,adv_input), dim=0)
+                logits = self.model(concat)
+                clean_logits, adv_logits = torch.split(logits, target.size(0), dim=0)
+                clean_loss = F.cross_entropy(clean_logits, target)
+                adv_loss = F.cross_entropy(adv_logits, target)
+                loss = self.lambda_clean * clean_loss + self.lambda_adv* adv_loss
 
                 loss.backward()
                 self.optimizer.step()
 
-                _, pred = torch.max(logits, dim=1)
+                _, pred = torch.max(clean_logits, dim=1)
                 correct += (pred == target).sum()
                 total += target.size(0)
+                acc = (float(correct) / total) * 100
 
                 # measure accuracy and record loss
                 losses.update(loss.data.item(), input.size(0))
+                message = 'Epoch {}/{}, Loss: {:.4f}, Accuracy: {:.4f}'.format(self.epoch,self.args.nepochs, loss.item(), acc)
+                tq.set_description(message)
+
+                # writing log in Tensorboard
+                self.writer.add_scalars('Adv_training/loss',{'clean_loss':clean_loss.item(),
+                                                             'adv_loss': adv_loss.item(),
+                                                             'entire_loss': loss.item()})
+                self.writer.add_scalar('Adv_training/Acc',acc)
 
             self.epoch += 1
             self.lr_scheduler.step()
             end_time = time.time()
             batch_time = end_time - start_time
-
-            acc = (float(correct) / total) * 100
             message = 'Epoch {}, Time {}, Loss: {}, Accuracy: {}'.format(self.epoch, batch_time, loss.item(), acc)
             self._log(message)
             self._save_checkpoint()
