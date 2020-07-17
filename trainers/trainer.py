@@ -39,10 +39,12 @@ class Trainer:
             batch_size=args.batch_size, shuffle=True, **kwargs)
 
         # Create model, optimizer and scheduler
-        self.model = models.WRN(depth=32, width=10, num_classes=10).cuda()
+        self.model = models.WRN(depth=32, width=10, num_classes=10)
         if args.spbn:
             print("SP")
             self.model = models.convert_splitbn_model(self.model).cuda()
+        else:
+            self.model.cuda()
             
 
         self.optimizer = optim.SGD(self.model.parameters(), args.lr,
