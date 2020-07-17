@@ -41,6 +41,7 @@ class Trainer:
         # Create model, optimizer and scheduler
         self.model = models.WRN(depth=32, width=10, num_classes=10).cuda()
         if args.spbn:
+            print("SP")
             self.model = models.convert_splitbn_model(self.model).cuda()
             
 
