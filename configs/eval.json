@@ -7,6 +7,7 @@
   "batch_size": 128,
   "save_path": "results",
   "restore": false,
+  "spbn": false,
 
   "attack_steps": 10,
   "attack_eps": 8,

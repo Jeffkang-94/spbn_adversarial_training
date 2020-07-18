@@ -28,7 +28,7 @@ class Trainer:
             T.ToTensor()
         ])
 
-        kwargs = {'num_workers': 16, 'pin_memory': True}
+        kwargs = {'num_workers': 8, 'pin_memory': True}
 
         self.train_loader = torch.utils.data.DataLoader(
             datasets.CIFAR10(args.data_root, train=True, download=True,
@@ -40,14 +40,15 @@ class Trainer:
 
         # Create model, optimizer and scheduler
         self.model = models.WRN(depth=32, width=10, num_classes=10)
-        if args.spbn:
+        self.spbn_flag=args.spbn
+        if self.spbn_flag:
             print("SPBN training!")
             self.model = models.convert_splitbn_model(self.model).cuda()
         else:
             self.model.cuda()
 
-        self.lambda_clean = 0.5
-        self.lambda_adv = 0.5
+        self.lambda_clean = 0.3
+        self.lambda_adv = 0.7
             
 
         self.optimizer = optim.SGD(self.model.parameters(), args.lr,
@@ -120,18 +121,25 @@ class Trainer:
                 input, target = data
                 target = target.cuda(non_blocking=True)
                 input = input.cuda(non_blocking=True)
-
+                self.model.eval()
                 adv_input = self.attacker.attack(input, target, self.model, self.args.attack_steps, self.args.attack_lr,random_init=True, target=None)
+                self.model.train()
 
                 # compute output
                 self.optimizer.zero_grad()
 
-                concat = torch.cat((input ,adv_input), dim=0)
-                logits = self.model(concat)
-                clean_logits, adv_logits = torch.split(logits, target.size(0), dim=0)
-                clean_loss = F.cross_entropy(clean_logits, target)
-                adv_loss = F.cross_entropy(adv_logits, target)
-                loss = self.lambda_clean * clean_loss + self.lambda_adv* adv_loss
+                if self.spbn_flag:
+                    #concat = torch.cat((input ,adv_input), dim=0)
+                    concat = torch.cat((adv_input, input), dim=0)
+                    logits = self.model(concat)
+                    adv_logits,clean_logits = torch.split(logits, target.size(0), dim=0)
+                    clean_loss = F.cross_entropy(clean_logits, target)
+                    adv_loss = F.cross_entropy(adv_logits, target)
+                    loss = self.lambda_clean * clean_loss + self.lambda_adv* adv_loss
+                else:
+                    clean_logits = self.model(input)
+                    loss = F.cross_entropy(clean_logits, target)
+                    mean, std = models.print_mean_std(self.model)
 
                 loss.backward()
                 self.optimizer.step()
@@ -147,10 +155,14 @@ class Trainer:
                 tq.set_description(message)
 
                 # writing log in Tensorboard
-                self.writer.add_scalars('Adv_training/loss',{'clean_loss':clean_loss.item(),
-                                                             'adv_loss': adv_loss.item(),
-                                                             'entire_loss': loss.item()})
-                self.writer.add_scalar('Adv_training/Acc',acc)
+                if self.spbn_flag:
+                    self.writer.add_scalars('Adv_training/loss',{'clean_loss':clean_loss.item(),
+                                                                'adv_loss': adv_loss.item(),
+                                                                'entire_loss': loss.item()})
+                    self.writer.add_scalar('Adv_training/Acc',acc)
+                else:
+                    self.writer.add_scalar('Adv_training/loss', loss.item())
+                    self.writer.add_scalar('Adv_training/Acc',acc)
 
             self.epoch += 1
             self.lr_scheduler.step()

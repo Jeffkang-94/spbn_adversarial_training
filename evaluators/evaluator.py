@@ -22,8 +22,13 @@ class Evaluator:
             batch_size=args.batch_size, shuffle=True, **kwargs)
 
         # Create model, optimizer and scheduler
-        self.model = models.WRN(depth=32, width=10, num_classes=10).cuda()
-        self.model = torch.nn.DataParallel(self.model).cuda()
+        self.model = models.WRN(depth=32, width=10, num_classes=10)
+        if args.spbn:
+            print("SPBN training!")
+            self.model = models.convert_splitbn_model(self.model).cuda()
+        else:
+            self.model.cuda()
+        #self.model = torch.nn.DataParallel(self.model).cuda()
 
         # Loading model
         assert self.args.restore is not None
@@ -52,7 +57,8 @@ class Evaluator:
         return acc
 
     def eval_worker(self, adv_flag=True):
-        correct = 0
+        clean_correct = 0
+        adv_correct=0
         total = 0
         tq = tqdm(enumerate(self.val_loader), total=len(self.val_loader), leave=True)
         #for i, data in enumerate(self.val_loader):
@@ -62,20 +68,28 @@ class Evaluator:
             input = input.cuda(non_blocking=True)
 
             if adv_flag:
-                input = self.attacker.attack(input, target, self.model, self.args.attack_steps, self.args.attack_lr,
+                
+
+                adv_input = self.attacker.attack(input, target, self.model, self.args.attack_steps, self.args.attack_lr,
                                              random_init=True)
 
             # compute output
             with torch.no_grad():
-                output = self.model(input)
+                clean_output = self.model(input)
+                adv_output = self.model(adv_input)
 
-            _, pred = torch.max(output, dim=1)
-            correct += (pred == target).sum()
+
+            _, pred = torch.max(clean_output, dim=1)
+            clean_correct += (pred == target).sum()
+
+            _, pred = torch.max(adv_output, dim=1)
+            adv_correct += (pred == target).sum()
+
             total += target.size(0)
-            tq.set_description("Accuracy : {:.4f} ".format(float(correct)/total*100))
+            tq.set_description("clean_acc : {:.4f}, adv_acc: {:.4f} ".format(float(clean_correct)/total*100, float(adv_correct)/total*100))
 
             if i==0:
                 save_image(input[:10], "test_image.jpg")
 
-        accuracy = (float(correct) / total) * 100
+        accuracy = (float(clean_correct) / total) * 100
         return accuracy

@@ -72,9 +72,14 @@ class SplitBatchNorm2d(torch.nn.BatchNorm2d):
                 x.append(a(split_input[i + 1]))
             return torch.cat(x, dim=0)
         else:
-            
             return super().forward(input)
 
+def print_mean_std(module):
+    mod = module
+    print(mod)
+    for name, child in module.named_children():
+        print(child.running_mean)
+    return mean, std
 
 def convert_splitbn_model(module, num_splits=2):
     """
