@@ -39,7 +39,7 @@ class Trainer:
             batch_size=args.batch_size, shuffle=True, **kwargs)
 
         # Create model, optimizer and scheduler
-        self.model = models.WRN(depth=32, width=10, num_classes=10)
+        self.model = models.WRN(depth=34, width=1, num_classes=10)
         self.spbn_flag=args.spbn
         if self.spbn_flag:
             print("SPBN training!")
@@ -47,8 +47,8 @@ class Trainer:
         else:
             self.model.cuda()
 
-        self.lambda_clean = 0.3
-        self.lambda_adv = 0.7
+        self.lambda_clean = 0.5
+        self.lambda_adv = 0.5
             
 
         self.optimizer = optim.SGD(self.model.parameters(), args.lr,

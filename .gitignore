@@ -3,3 +3,5 @@ results/*
 .vscode/*
 *.txt
 data/*
+visualizers/__pycache__/*
+trainers/__pycache__/*
