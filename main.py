@@ -18,7 +18,7 @@ def parse_args():
                         help='Algorithm to train | Clean / Adv')
     parser.add_argument('--save_path', default='results', type=str,
                         help='path to save file')
-    parser.add_argument('--attack_steps', default=10, type=int,
+    parser.add_argument('--attack_steps', default=7, type=int,
                         help='number of attack iterations (PGD-n)')
     parser.add_argument('--mode', default=None,
                         help='mode to use| Can be train, eval, vis')

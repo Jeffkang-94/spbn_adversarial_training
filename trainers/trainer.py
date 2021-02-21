@@ -47,13 +47,12 @@ class Trainer:
         else:
             self.model.cuda()
 
-        self.lambda_clean = 0.5
-        self.lambda_adv = 0.5
+        self.lambda_ = 0.7
             
 
         self.optimizer = optim.SGD(self.model.parameters(), args.lr,
                                    momentum=0.9, weight_decay=args.weight_decay)
-        self.lr_scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=[60, 120, 160], gamma=0.2)
+        self.lr_scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=[60, 120, 160], gamma=0.1)
 
         print('Number of model parameters: {}'.format(
             sum([p.data.nelement() for p in self.model.parameters()])))
@@ -63,7 +62,6 @@ class Trainer:
         self.epoch = 0
         cudnn.benchmark = True
         self.attacker = PGDAttacker(args.attack_eps)
-        
 
         # resume from checkpoint
         if args.resume:
@@ -121,21 +119,20 @@ class Trainer:
                 input, target = data
                 target = target.cuda(non_blocking=True)
                 input = input.cuda(non_blocking=True)
-                self.model.eval()
                 adv_input = self.attacker.attack(input, target, self.model, self.args.attack_steps, self.args.attack_lr,random_init=True, target=None)
-                self.model.train()
 
                 # compute output
                 self.optimizer.zero_grad()
 
                 if self.spbn_flag:
-                    #concat = torch.cat((input ,adv_input), dim=0)
                     concat = torch.cat((adv_input, input), dim=0)
                     logits = self.model(concat)
                     adv_logits,clean_logits = torch.split(logits, target.size(0), dim=0)
-                    clean_loss = F.cross_entropy(clean_logits, target)
+
                     adv_loss = F.cross_entropy(adv_logits, target)
-                    loss = self.lambda_clean * clean_loss + self.lambda_adv* adv_loss
+                    clean_loss = F.cross_entropy(clean_logits, target)
+
+                    loss =  self.lambda_* adv_loss + (1-self.lambda_) * clean_loss
                 else:
                     clean_logits = self.model(input)
                     loss = F.cross_entropy(clean_logits, target)
