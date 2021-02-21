@@ -24,12 +24,9 @@ Proposed model is differnet in that the model is conveted into the split batchno
 We use basic ResNet introduced in Madry Paper. 
 Baseline model represents the model who has been trained with adversarial data only and spbn was not applied.
 For training the baseline model, we followed the basic setting in Madry paper.
-> PGD adversarial Training
-> 
-> attack_steps = 7
-> 
-> attack_eps = 8.0/255.0
-> 
+> **PGD adversarial Training**   
+> attack_steps = 7  
+> attack_eps = 8.0/255.0  
 > attack_lr = 2.0/255.0
 
 | Accuracy  | Baseline([Madry](https://arxiv.org/pdf/1706.06083.pdf))  | Lambda = 0.3 | Lambda = 0.5 | Lambda = 0.7 | Lambda = 0.9 |
