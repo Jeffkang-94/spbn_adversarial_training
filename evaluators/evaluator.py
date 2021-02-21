@@ -7,6 +7,7 @@ import torch.backends.cudnn as cudnn
 from attacks import PGDAttacker
 from tqdm import tqdm
 from torchvision.utils import save_image
+
 class Evaluator:
     def __init__(self, args):
 
@@ -22,13 +23,12 @@ class Evaluator:
             batch_size=args.batch_size, shuffle=True, **kwargs)
 
         # Create model, optimizer and scheduler
-        self.model = models.WRN(depth=32, width=10, num_classes=10)
+        self.model = models.WRN(depth=34, width=1, num_classes=10)
         if args.spbn:
             print("SPBN training!")
             self.model = models.convert_splitbn_model(self.model).cuda()
         else:
             self.model.cuda()
-        #self.model = torch.nn.DataParallel(self.model).cuda()
 
         # Loading model
         assert self.args.restore is not None
@@ -60,18 +60,17 @@ class Evaluator:
         clean_correct = 0
         adv_correct=0
         total = 0
+
         tq = tqdm(enumerate(self.val_loader), total=len(self.val_loader), leave=True)
-        #for i, data in enumerate(self.val_loader):
+        print(self.args.attack_steps)
         for i, data in tq:
             input, target = data
             target = target.cuda(non_blocking=True)
             input = input.cuda(non_blocking=True)
 
             if adv_flag:
-                
-
-                adv_input = self.attacker.attack(input, target, self.model, self.args.attack_steps, self.args.attack_lr,
-                                             random_init=True)
+                adv_input = self.attacker.attack(input, target, self.model, self.args.attack_steps, self.args.attack_lr,random_init=True)
+                #adv_input = self.attacker.fgsm(input, target, self.model, random_init=True)
 
             # compute output
             with torch.no_grad():

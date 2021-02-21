@@ -5,3 +5,6 @@ results/*
 data/*
 visualizers/__pycache__/*
 trainers/__pycache__/*
+evaluators/__pycache__/*
+attacks/__pycache__/*
+state_dict.py
