@@ -31,6 +31,6 @@ For training the baseline model, we followed the basic setting in Madry paper.
 
 | Accuracy  | Baseline([Madry](https://arxiv.org/pdf/1706.06083.pdf))  | Lambda = 0.3 | Lambda = 0.5 | Lambda = 0.7 | Lambda = 0.9 |
 | :------------ | :------------| :------------| :------------| :------------| :------------|
-| Clean      | 78.1 | 83.61 || | 78.92|
-| FGSM       | 58.46 | 48.33 || | 51.06 |
-| PGD 7/40   | 48.09/45.22 | 42.83/38.68   ||| 47.62 |
+| Clean      | 78.1 |  || 81.27 | |
+| FGSM       | 58.46 |  ||49.68 |  |
+| PGD 7/40   | 48.09/45.22 |    |45.47|42.1|   |
