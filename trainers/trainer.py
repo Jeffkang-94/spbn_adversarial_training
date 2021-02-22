@@ -40,6 +40,8 @@ class Trainer:
 
         # Create model, optimizer and scheduler
         self.model = models.WRN(depth=34, width=1, num_classes=10)
+
+        
         self.spbn_flag=args.spbn
         if self.spbn_flag:
             print("SPBN training!")
