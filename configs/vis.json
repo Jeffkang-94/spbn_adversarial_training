@@ -1,17 +1,16 @@
 {
-  "data_root": "/scratch0/dataset/CIFAR",
+  "data_root": "./data",
   "model_depth": 32,
   "model_width": 10,
   "alg": "clean",
 
   "batch_size": 10,
   "save_path": "results",
-  "restore": false,
 
   "attack_steps": 1000,
   "attack_eps": 8,
   "attack_lr": 2,
   "mode": "vis",
   "num_vis": 5,
-  "restore": "results/train/adv_training/checkpoint.pth"
+  "restore": "./results/train/adv_training_spbn_1/best.pth"
 }

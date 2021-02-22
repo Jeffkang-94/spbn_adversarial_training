@@ -45,11 +45,16 @@ class Trainer:
         self.spbn_flag=args.spbn
         if self.spbn_flag:
             print("SPBN training!")
-            self.model = models.convert_splitbn_model(self.model).cuda()
+            self.model = models.convert_splitbn_model(self.model, momentum=0.5).cuda()
         else:
             self.model.cuda()
 
-        self.lambda_ = 0.7
+        self.lambda_ = 0.9
+
+        # spbn_1 = 0.7 adv momentum = 0.1
+        # spbn_2 = 0.7, adv_momentum = 0.01
+        # spbn_3 = 0.9, adv_momentum = 0.01
+        # spbn_4 = 0.9, adv_momentum = 0.5
             
 
         self.optimizer = optim.SGD(self.model.parameters(), args.lr,
@@ -127,9 +132,9 @@ class Trainer:
                 self.optimizer.zero_grad()
 
                 if self.spbn_flag:
-                    concat = torch.cat((adv_input, input), dim=0)
+                    concat = torch.cat((input, adv_input), dim=0)
                     logits = self.model(concat)
-                    adv_logits,clean_logits = torch.split(logits, target.size(0), dim=0)
+                    clean_logits,adv_logits = torch.split(logits, target.size(0), dim=0)
 
                     adv_loss = F.cross_entropy(adv_logits, target)
                     clean_loss = F.cross_entropy(clean_logits, target)

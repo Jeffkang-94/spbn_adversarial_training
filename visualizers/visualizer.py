@@ -24,16 +24,16 @@ class Visualizer:
         self.train_loader = torch.utils.data.DataLoader(
             train_set,
             batch_size=args.batch_size, shuffle=True, **kwargs)
-        self.train_samples_np = train_set.data.astype(np.float32)
+        self.train_samples_np = train_set.train_data.astype(np.float32)
         self.train_samples_np = self.train_samples_np.transpose(0, 3, 1, 2)
         self.train_samples_np = np.reshape(self.train_samples_np, (self.train_samples_np.shape[0], -1))
 
         self.train_samples_np = self.train_samples_np / 255.0
-        self.labels_np = np.array(train_set.targets)
+        self.labels_np = np.array(train_set.train_labels)
 
         # Create model, optimizer and scheduler
-        self.model = models.WRN(depth=32, width=10, num_classes=10)
-        self.model = torch.nn.DataParallel(self.model).cuda()
+        self.model = models.WRN(depth=34, width=1, num_classes=10).cuda()
+        self.model = models.convert_splitbn_model(self.model).cuda()
 
         # Loading model
         assert self.args.restore is not None
@@ -87,7 +87,7 @@ class Visualizer:
         Module to compute and visualize adversarial perturbations
         """
 
-        num_vis = self.args.num_vis
+        num_vis = 5
         input_list = []
         input_adv_list = []
         input_nn_list = []

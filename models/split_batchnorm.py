@@ -59,15 +59,13 @@ class SplitBatchNorm2d(torch.nn.BatchNorm2d):
         self.num_splits = num_splits
         self.aux_bn = nn.ModuleList([
             nn.BatchNorm2d(num_features, eps, momentum, affine, track_running_stats) for _ in range(num_splits - 1)])
-        #self.aux_bn = nn.ModuleList([
-            #MyBatchNorm2d(num_features, eps, momentum, affine, track_running_stats) for _ in range(num_splits - 1)])
     def forward(self, input: torch.Tensor):
         if self.training:  # aux BN only relevant while training
             split_size = input.shape[0] // self.num_splits # 64 to 32 
             assert input.shape[0] == split_size * self.num_splits, "batch size must be evenly divisible by num_splits"
             split_input = input.split(split_size)
             x = [super().forward(split_input[0])]
-            mean_list, std_list= [] , []
+            #mean_list, std_list= [] , []
             for i, a in enumerate(self.aux_bn):
                 x.append(a(split_input[i + 1]))
             return torch.cat(x, dim=0)
@@ -81,7 +79,7 @@ def print_mean_std(module):
         print(child.running_mean)
     return mean, std
 
-def convert_splitbn_model(module, num_splits=2):
+def convert_splitbn_model(module, momentum=0.01, num_splits=2):
     """
     Recursively traverse module and its children to replace all instances of
     ``torch.nn.modules.batchnorm._BatchNorm`` with `SplitBatchnorm2d`.
@@ -93,11 +91,12 @@ def convert_splitbn_model(module, num_splits=2):
         >>> model = timm.models.convert_splitbn_model(model, num_splits=2)
     """
     mod = module
+    adv_momentum = momentum
     if isinstance(module, torch.nn.modules.instancenorm._InstanceNorm):
         return module
     if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
         mod = SplitBatchNorm2d(
-            module.num_features, module.eps, module.momentum, module.affine,
+            module.num_features, module.eps,adv_momentum, module.affine,
             module.track_running_stats, num_splits=num_splits)
         mod.running_mean = module.running_mean
         mod.running_var = module.running_var

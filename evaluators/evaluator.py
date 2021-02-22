@@ -7,7 +7,7 @@ import torch.backends.cudnn as cudnn
 from attacks import PGDAttacker
 from tqdm import tqdm
 from torchvision.utils import save_image
-
+import foolbox
 class Evaluator:
     def __init__(self, args):
 
@@ -38,8 +38,20 @@ class Evaluator:
         self.model.eval()
 
         cudnn.benchmark = True
-        self.attacker = PGDAttacker(args.attack_eps)
         self.save_path = self.args.save_path
+        self.epsilons = args.epsilon/255.0
+
+
+        # Foolbox Attack #
+        self.model = foolbox.PyTorchModel(self.model, bounds=(0,1))
+        if args.attack=='FGSM':
+            self.attack = foolbox.attacks.LinfFastGradientAttack(random_start=True)
+        elif args.attack=='PGD':
+            self.attack = foolbox.attacks.LinfPGD(steps=args.attack_steps, abs_stepsize=2.0/255.0, random_start=True)
+        elif args.attack=='BA':
+            self.attack = foolbox.attacks.BoundaryAttack()
+        elif args.attack=='CW':
+            self.attack = foolbox.attacks.L2CarliniWagnerAttack(steps=1000, confidence=20) # confidence == kappa
 
     def _log(self, message):
         print(message)
@@ -67,10 +79,7 @@ class Evaluator:
             input, target = data
             target = target.cuda(non_blocking=True)
             input = input.cuda(non_blocking=True)
-
-            if adv_flag:
-                adv_input = self.attacker.attack(input, target, self.model, self.args.attack_steps, self.args.attack_lr,random_init=True)
-                #adv_input = self.attacker.fgsm(input, target, self.model, random_init=True)
+            adv_input, _,_ = self.attack(self.model, input, target, epsilons=self.epsilons)
 
             # compute output
             with torch.no_grad():

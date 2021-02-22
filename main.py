@@ -26,6 +26,8 @@ def parse_args():
                         help='path to restore')
     parser.add_argument('--spbn', action='store_true', help='training model as spbn model')
     parser.add_argument('--resume', action='store_true', help='resume the training with recent checkpoint')
+    parser.add_argument('--attack', default='FGSM', help='specify the type of attack[FGSM/PGD/CW/Boundary]')
+    parser.add_argument('--epsilon', type=float ,default=8, help= 'magnitude of perturbation')
     args = parser.parse_args()
     return args
 

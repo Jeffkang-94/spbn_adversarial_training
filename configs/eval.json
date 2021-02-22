@@ -12,5 +12,7 @@
   "attack_steps": 40,
   "attack_eps": 8.0,
   "attack_lr": 2,
-  "mode": "eval"
+  "mode": "eval",
+  "attack":"FGSM",
+  "epsilon":8
 }
